@@ -2,6 +2,9 @@
 
 - [Hugging Face](https://huggingface.co/)
 - [Kaggle](https://www.kaggle.com/)
+- [Članek SPROTNA ANALIZA SLIK VOZIL Z
+METODAMI GLOBOKEGA UČENJA V
+OGRODJU FLUTTER](https://rosus.feri.um.si/rosus2024/files/Shishkov-Sprotna.pdf)
 
 # Overview
 
