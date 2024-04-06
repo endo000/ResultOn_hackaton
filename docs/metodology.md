@@ -41,7 +41,8 @@ Arhitektura CLI aplikacije bo naslednja:
 - Na ustvarjenem naboru podatkov bomo izučili model klasifikacije slik. Načrtujemo uporabo modela MobileNetV3, zaradi njegove visoke natančnosti in optimiziranosti za mobilne naprave.
 - Kot izhod te aplikacije bomo dobili uteži in model klasifikacije na osnovi MobileNetV3.
 
-![[arhitektura_ai.drawio.png]]
+![CLI app architecture](/images/arhitektura_ai.drawio.png)
+
 
 ### Zaledna aplikacija
 
