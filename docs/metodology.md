@@ -1,7 +1,9 @@
 # Viri
 
-[Hugging Face](https://huggingface.co/)
-[Kaggle](https://www.kaggle.com/)
+- [Hugging Face](https://huggingface.co/)
+- [Kaggle](https://www.kaggle.com/)
+
+# Overview
 
 Naš projekt je namenjen uporabnikom, ki želijo dobiti pripravljen model za klasifikacijo slik iz različnih kategorij. Ta model bo sprejel poljubno sliko kot vhod in izdal pripadajočo kategorijo.
 
@@ -62,4 +64,8 @@ Uporabnik lahko v aplikaciji vidi vse dostopne modele, ki jih je naučila CLI ap
 
 Ena od funkcionalnosti aplikacije je tudi napovedovanje neposredno na napravi. Načrtujemo prenos [TFLite](https://pub.dev/packages/tflite_flutter) modela v aplikacijo in njegovo uporabo za napovedi.
 
-TODO: Uporabniška imena za superračunalnik.
+## Uporabniška imena za superračunalnik
+
+- auser010 (Aleksandr Shishkov)
+- auser011 (Mark Škof) 
+- auserXXX (Matija Bažec)
