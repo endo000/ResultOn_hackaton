@@ -1,8 +1,9 @@
 # ResultOn_hackaton
 
-Stable diffusion model. Image-to-text model.
+### Stable diffusion model. Image-to-text model.
 
-https://huggingface.co/CompVis/stable-diffusion
+- https://huggingface.co/CompVis/stable-diffusion
+- https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
 
 ## Dodatna dokumentacija
 
