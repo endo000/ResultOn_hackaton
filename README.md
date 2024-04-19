@@ -1,9 +1,7 @@
 # ResultOn_hackaton
 
-### Stable diffusion model. Image-to-text model.
-
-- https://huggingface.co/CompVis/stable-diffusion
-- https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+## Arhitektura projekta
+![Project architecture](/images/Hackaton_app_architecture.drawio.png)
 
 ## Dodatna dokumentacija
 
