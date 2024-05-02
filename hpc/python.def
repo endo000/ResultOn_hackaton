@@ -1,0 +1,71 @@
+Bootstrap: docker
+From: ubuntu:20.04
+IncludeCmd: yes
+
+%files
+    libraries/cudnn-linux-x86_64-8.9.7.29_cuda12-archive.tar.xz /
+
+%environment
+    export LC_ALL=C
+    export LD_LIBRARY_PATH=/cudnn-linux-x86_64-8.9.7.29_cuda12-archive/lib
+    export TF_USE_LEGACY_KERAS=1
+
+%post
+    export LC_ALL=C    
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt -y update
+    apt -y install \
+        software-properties-common \
+        build-essential \
+        xz-utils \
+        git \
+        curl \
+        wget \
+        libtbb-dev \
+        ffmpeg \
+        libsm6 \
+        libxext6
+
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
+    dpkg -i cuda-keyring_1.1-1_all.deb
+    apt update
+    apt -y install cuda-toolkit-12-3
+
+    tar -xvf /cudnn-linux-x86_64-8.9.7.29_cuda12-archive.tar.xz
+    rm /cudnn-linux-x86_64-8.9.7.29_cuda12-archive.tar.xz
+
+    add-apt-repository ppa:deadsnakes/ppa
+    apt -y update
+    apt -y install python3.11
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+
+    pip3.11 install --upgrade \
+        fire \
+        diffusers \
+        transformers \
+        accelerate \
+        safetensors \
+        numpy \
+        tensorflow \
+        tensorflow_hub \
+        mlflow \
+        pika
+
+
+%runscript
+    python3.11 --version
+
+%test
+    python3.11 --version
+
+%labels
+    Author      Aleksandr Shishkov
+    Container   ML python
+    Version     1.0
+    Description Container with python libraries for machine learning
+
+%help
+    Python container with ML libraries
+    Used to run Stable diffusion and Alpaca GPT4 models
+    Container doesn't contain scripts, they should be binded via volumes

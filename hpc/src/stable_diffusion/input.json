@@ -1,0 +1,17 @@
+{
+	"prompts": [
+		{
+			"category": "car",
+			"prompt": "Pink car in cyberpunk style"
+		},
+		{
+			"category": "cat",
+			"prompt": "Happy cat with a bow tie"
+		},
+		{
+			"category": "dog",
+			"prompt": "Group of dogs in a park"
+		}
+	],
+	"images_length": 2
+}
