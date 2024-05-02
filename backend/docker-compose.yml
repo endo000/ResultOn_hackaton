@@ -1,0 +1,58 @@
+services:
+  nginx:
+    image: nginx:1.25.5
+    ports:
+      - 80:80
+  mlflow:
+    build:
+      context: dockerfiles
+      dockerfile: mlflow.Dockerfile
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --app-name basic-auth
+      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_MLFLOW_DATABASE}
+      --serve-artifacts
+      --artifacts-destination s3://${MLFLOW_BUCKET_NAME}
+    environment:
+      - MLFLOW_AUTH_CONFIG_PATH=${MLFLOW_AUTH_CONFIG_PATH}
+      - AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:${MINIO_PORT}
+      - MLFLOW_S3_IGNORE_TLS=true
+    ports:
+      - 5000:5000
+    volumes:
+      - ./mlflow:/mlflow
+  postgres:
+    image: postgres:16.2
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres-initdb:/docker-entrypoint-initdb.d
+  rabbitmq:
+    image: rabbitmq:3.13.1-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./rabbitmq/conf.d:/etc/rabbitmq/conf.d
+  minio:
+    image: minio/minio:RELEASE.2024-05-01T01-11-10Z
+    command: server /data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ADDRESS=${MINIO_ADDRESS}
+      - MINIO_PORT=${MINIO_PORT}
+      - MINIO_STORAGE_USE_HTTPS=${MINIO_STORAGE_USE_HTTPS}
+      - MINIO_CONSOLE_ADDRESS=${MINIO_CONSOLE_ADDRESS}
+    ports:
+      - 9000:9000
+      - 9001:9001
