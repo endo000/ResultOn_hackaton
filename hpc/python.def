@@ -16,7 +16,11 @@ IncludeCmd: yes
 
     apt -y update
     apt -y install \
-        software-properties-common \
+        software-properties-common
+    add-apt-repository ppa:deadsnakes/ppa
+
+    apt -y update
+    apt -y install \
         build-essential \
         xz-utils \
         git \
@@ -25,7 +29,23 @@ IncludeCmd: yes
         libtbb-dev \
         ffmpeg \
         libsm6 \
-        libxext6
+        libxext6 \
+        python3.11
+
+    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
+
+    pip3.11 install --upgrade \
+        fire \
+        numpy \
+        diffusers \
+        accelerate \
+        tensorflow \
+        tensorflow_hub \
+        mlflow \
+        pika \
+        chromadb \
+        pysqlite3-binary \
+        img2vec_pytorch
 
     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
     dpkg -i cuda-keyring_1.1-1_all.deb
@@ -34,24 +54,6 @@ IncludeCmd: yes
 
     tar -xvf /cudnn-linux-x86_64-8.9.7.29_cuda12-archive.tar.xz
     rm /cudnn-linux-x86_64-8.9.7.29_cuda12-archive.tar.xz
-
-    add-apt-repository ppa:deadsnakes/ppa
-    apt -y update
-    apt -y install python3.11
-    curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
-
-    pip3.11 install --upgrade \
-        fire \
-        diffusers \
-        transformers \
-        accelerate \
-        safetensors \
-        numpy \
-        tensorflow \
-        tensorflow_hub \
-        mlflow \
-        pika
-
 
 %runscript
     python3.11 --version

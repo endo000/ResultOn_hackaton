@@ -13,11 +13,14 @@ class SDPipeline:
         self.distributed_state = PartialState()
 
         self.pipe = StableDiffusionXLPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16
+            "stabilityai/stable-diffusion-xl-base-1.0",
+            torch_dtype=torch.float16,
         )
         self.pipe.to(self.distributed_state.device)
         self.pipe.unet = torch.compile(
-            self.pipe.unet, mode="reduce-overhead", fullgraph=True
+            self.pipe.unet,
+            mode="reduce-overhead",
+            fullgraph=True,
         )
 
         self.batch_size = batch_size
