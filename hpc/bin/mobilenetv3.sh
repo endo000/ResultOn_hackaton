@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")/.." || exit 1
+
 srun \
 	--job-name mobilenetv3 \
 	--reservation hackathon \
