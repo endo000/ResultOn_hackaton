@@ -12,8 +12,6 @@ from fastapi.responses import HTMLResponse
 from utils.rabbitmq import RabbitMQ
 
 
-
-
 # request body for model
 class ModelInput(BaseModel):
     model_name: str
@@ -73,10 +71,8 @@ async def classify_image(model_input: ModelInput = Depends(), file: UploadFile =
     # upload image
     filename = s3_upload_file(file)
 
-
     # execute command via custom method and return to api the anwser from the ssh (or error)
     output = execute_ssh_command('bash hackathon/hpc/bin/mobilenetv3.sh')
-
 
     if output is not None:
         print("Command output:")
@@ -92,10 +88,11 @@ async def classify_image(model_input: ModelInput = Depends(), file: UploadFile =
 async def llm_generate(prompt = str):
     print(f'bash hackathon/hpc/bin/alpaca_llm.sh {prompt}')
     # execute command via custom method and return to api the anwser from the ssh (or error)
-    output = execute_ssh_command(f'bash hackathon/hpc/bin/alpaca_llm.sh {prompt}')
+    output = execute_ssh_command(f'bash alpaca_llm.sh {prompt}')
 
-    rabbit = RabbitMQ(routing_key="#")
-    rabbit.receive()
+#def callback
+    #rabbit = RabbitMQ(routing_key="#")
+    #str = rabbit.receive()
 
     
 
