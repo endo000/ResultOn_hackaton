@@ -1,15 +1,13 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form, WebSocket
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 import os
 from mlflow import MlflowClient
 from dotenv import load_dotenv
 from utils.execute_ssh import execute_ssh_command
 from utils.s3_upload_file import s3_upload_file
-import boto3
-from botocore.exceptions import ClientError
-from botocore.client import Config
 from fastapi.responses import HTMLResponse
-from utils.rabbitmq import RabbitMQ
+from utils.websocket_manager import ConnectionManager
+
 
 
 # request body for model
@@ -23,6 +21,9 @@ load_dotenv()
 
 # startup the FastAPI app
 app = FastAPI()
+
+# manafer for websockets
+manager = ConnectionManager()
 
 
 # get all models
@@ -52,8 +53,7 @@ async def train_model(input_data: ModelInput):
     # execute command via custom method and return to api the anwser from the ssh (or error)
     output = execute_ssh_command(os.environ["COMMAND_TRAIN"])
 
-
-    
+    #TODO output from ssh should be like "trainning susccesful" 
 
     if output is not None:
         print("Command output:")
@@ -74,6 +74,8 @@ async def classify_image(model_input: ModelInput = Depends(), file: UploadFile =
     # execute command via custom method and return to api the anwser from the ssh (or error)
     output = execute_ssh_command('bash hackathon/hpc/bin/mobilenetv3.sh')
 
+    # TODO ssh output should be a classified image
+
     if output is not None:
         print("Command output:")
         print(output)
@@ -84,18 +86,14 @@ async def classify_image(model_input: ModelInput = Depends(), file: UploadFile =
 
 
 #generate llm answers
-@app.post("/api/v1/llm/generate")
+@app.post("/api/v1/llm/generate1")
 async def llm_generate(prompt = str):
+
     print(f'bash hackathon/hpc/bin/alpaca_llm.sh {prompt}')
     # execute command via custom method and return to api the anwser from the ssh (or error)
     output = execute_ssh_command(f'bash alpaca_llm.sh {prompt}')
-
-#def callback
-    #rabbit = RabbitMQ(routing_key="#")
-    #str = rabbit.receive()
-
     
-
+    # TODO output should be generated phrazes
     if output is not None:
         print("Command output:")
         print(output)
@@ -120,6 +118,8 @@ async def llm_embeding(file: UploadFile = File(...)):
 
     # execute command via custom method and return to api the anwser from the ssh (or error)
     output = execute_ssh_command('bash hackathon/hpc/bin/mobilenetv3.sh')
+
+    # TODO outup shoud be text from embeded image
     if output is not None:
         print("Command output:")
         print(output)
