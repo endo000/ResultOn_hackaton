@@ -25,12 +25,19 @@ class RabbitMQ:
     def __del__(self):
         self.connection.close()
 
-    def publish(self, message):
-        self.channel.basic_publish(
-            exchange=self.exchange,
-            routing_key=self.routing_key,
-            body=message,
-        )
+    def publish(self, message, path=None):
+        routing_key = self.routing_key
+        if path is not None:
+            routing_key = f"{routing_key}.{path}"
+
+        try:
+            self.channel.basic_publish(
+                exchange=self.exchange,
+                routing_key=routing_key,
+                body=message,
+            )
+        except Exception:
+            pass
 
     def receive(self):
         result = self.channel.queue_declare("", exclusive=True)

@@ -1,17 +1,21 @@
 {
-	"prompts": [
+	"categories": [
 		{
-			"category": "car",
-			"prompt": "Pink car in cyberpunk style"
+			"category": "bride",
+			"prompts": [
+				"An image of a stunning bride standing in front of her wedding venue, surrounded by lush greenery and blooming flowers. The bride is wearing a beautiful white gown with intricate lace details and carrying a bouquet of fresh flowers. The background is painted with soft pastel shades of pink, blue, and green, creating a dreamy atmosphere. The lighting style is diffused and soft, highlighting the bride's delicate features and the beauty of her surroundings.",
+				"An image of a beautiful bride walking down the aisle towards her groom, wearing a stunning lace gown and carrying a bouquet of fresh flowers. The background is painted with vibrant shades of red and gold, creating a romantic atmosphere. The lighting style is soft and diffused, highlighting the bride's elegant features and the beauty of her surroundings.",
+				"An image of a beautiful bride standing in front of a stunning wedding cake, surrounded by candles and fresh flowers. The background is painted with soft pastel shades of pink and blue, creating a dreamy atmosphere"
+			]
 		},
 		{
-			"category": "cat",
-			"prompt": "Happy cat with a bow tie"
-		},
-		{
-			"category": "dog",
-			"prompt": "Group of dogs in a park"
+			"category": "others",
+			"prompts": [
+				"A close-up shot of a groom's face as he watches his bride walk down the aisle, his eyes filled with love and admiration. The camera angle captures the emotion on his face beautifully, and the overall mood is romantic and sentimental.",
+				"A shot of the wedding party gathered around the newlyweds, their faces filled with joy and excitement. The camera angle captures the moment perfectly, and the overall mood is celebratory and joyous.",
+				"A shot of a bride's father as he gives her away to her groom, his face filled with pride and love. The camera angle captures the emotion on his face beautifully, and the overall mood is sentimental and emotional.\n4. A close-up shot of a bridesmaid as she adjusts the train of the bride's dress, her eyes filled with love and admiration. The camera angle captures the moment perfectly, and the overall mood is"
+			]
 		}
 	],
-	"images_length": 2
+	"images_length": 20
 }
