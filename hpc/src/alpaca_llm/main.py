@@ -1,33 +1,79 @@
-print('import')
-from transformers import pipeline
+import json
+
+import fire
+from gpt4all import GPT4All
+from rabbitmq import RabbitMQ
 from transformers.utils import logging
-import torch
 
-logging.set_verbosity_debug()
 
-prompt = "Write an email about an alpaca that likes flan"
-print('pipeline')
+class AlpacaLLM:
+    def __init__(
+        self,
+        model_id="declare-lab/flan-alpaca-gpt4-xl",
+        max_length=128,
+        do_sample=True,
+    ):
+        self.rabbit = RabbitMQ(routing_key="alpaca_llm")
 
-print(torch.cuda.is_available())
-print(torch.cuda.device_count())
-print(torch.cuda.current_device())
-print(torch.cuda.device(0))
-print(torch.cuda.get_device_name(0))
+        self.rabbit.publish(
+            "Initialize pipeline",
+            path="startup",
+        )
 
-while True:
-    data = input("Please enter the message:\n")
-    if 'Exit' == data:
-        break
+        # self.model = pipeline(model=model_id)
+        self.model = GPT4All("gpt4all-falcon-newbpe-q4_0.gguf")
 
-    exec(data)
+        self.rabbit.publish(
+            "Pipeline initialized",
+            path="startup",
+        )
 
-model = pipeline(model="declare-lab/flan-alpaca-gpt4-xl")
-print('model')
-model(prompt, max_length=128, do_sample=True)
+        self.max_length = max_length
+        self.do_sample = do_sample
 
-while True:
-    data = input("Please enter the message:\n")
-    if 'Exit' == data:
-        break
+    def run(self, prompt, additional_path=""):
+        if additional_path and additional_path[-1] != ".":
+            additional_path = f"{additional_path}."
 
-    print(model(data, max_length=128))
+        self.rabbit.publish(
+            prompt,
+            path=f"{additional_path}request",
+        )
+        response = self.model.generate(prompt=prompt)
+
+        self.rabbit.publish(
+            response,
+            path=f"{additional_path}response",
+        )
+
+        self.rabbit.publish(
+            "finish",
+            path=f"{additional_path}finish",
+        )
+
+
+def categories(categories: list[str] = []):
+    llm = AlpacaLLM()
+
+    with llm.model.chat_session():
+        prompt = "Here’s a formula for a Stable Diffusion image prompt: An image of [adjective] [subject] [doing action], [creative lighting style], detailed, realistic, trending on artstation, in style of [famous artist 1], [famous artist 2], [famous artist 3]."
+        llm.run(prompt, additional_path="promptsetup")
+
+        for category in categories:
+            prompt = f"Write 5 Stable Diffusion prompts using the above formula with the subject being {category}"
+            llm.run(prompt, additional_path=category)
+
+
+def llm(prompt: str = "I am a software engineer"):
+    llm = AlpacaLLM()
+    llm.run(prompt)
+
+
+if __name__ == "__main__":
+    logging.set_verbosity_debug()
+    fire.Fire(
+        {
+            "categories": categories,
+            "llm": llm,
+        }
+    )

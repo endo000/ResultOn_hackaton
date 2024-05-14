@@ -1,162 +1,15 @@
-import json
 import os
 import random
-import shutil
-import tempfile
 
+import boto3
 import fire
 import mlflow
 import mlflow.keras
 import numpy as np
-import pika
 import tensorflow as tf
 import tensorflow_hub as hub
-
-
-class SplitDataset:
-    def __init__(self, split_ratio: str, path: str):
-        self.split_ratio = json.loads(split_ratio)
-        self.path = path
-
-        if not self.verify_split_ratio():
-            raise ValueError("Split ratio must sum to 1 or less")
-        if not self.verify_dataset():
-            raise ValueError("Dataset path must contain directories")
-
-    def verify_split_ratio(self) -> bool:
-        sum = 0
-        for _, ratio in self.split_ratio.items():
-            sum += ratio
-            if sum > 1:
-                return False
-
-        return True
-
-    def verify_dataset(self) -> bool:
-        labels = os.listdir(self.path)
-
-        for label in labels:
-            path = os.path.join(self.path, label)
-            if not os.path.isdir(path):
-                return False
-
-        return True
-
-    def temp_copy(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        temp_name = self.temp_dir.name
-        print(f"Create temp directory: {temp_name}")
-
-        self.temp_path = f"{temp_name}/dataset"
-
-        print("Copying dataset to temp directory")
-        shutil.copytree(self.path, self.temp_path)
-        print("Copy finished successfully")
-
-    def split(self, shuffle: bool = True) -> dict:
-        labels = os.listdir(self.path)
-        print(f"Labels: {labels}")
-
-        if not hasattr(self, "temp_path"):
-            self.temp_copy()
-
-        self.split_dataset = dict()
-        start_indexes = {label: 0 for label in labels}
-        label_elements = dict()
-        element_length = dict()
-
-        # Cache dataset info
-        for label in labels:
-            elements = os.listdir(f"{self.temp_path}/{label}")
-            length = len(elements)
-
-            label_elements[label] = elements
-            element_length[label] = length
-
-            print(f"{label}: {length}")
-
-            if shuffle:
-                random.shuffle(elements)
-
-        for split_type, ratio in self.split_ratio.items():
-            split_items = dict()
-            print(f"--- Split type: {split_type} ---\n")
-            for label in labels:
-                elements = label_elements[label]
-                length = element_length[label]
-                start_index = start_indexes[label]
-
-                split_count = int(length * ratio)
-                split_items[label] = elements[start_index : start_index + split_count]
-                start_indexes[label] += split_count
-
-                print(f"{label}: {split_count}")
-
-            print(f"\n--- Split type: {split_type} finish ---\n")
-            self.split_dataset[split_type] = split_items
-
-        return self.split_dataset
-
-    def save_split(self, dst: str) -> dict:
-        output_path = dict()
-
-        split_path = f"{dst}/split_dataset"
-        if not os.path.exists(split_path):
-            os.makedirs(split_path, exist_ok=True)
-
-        for dataset_type, _ in self.split_dataset.items():
-            type_path = f"{split_path}/{dataset_type}"
-            if not os.path.exists(type_path):
-                print(f"Create directory: {type_path}")
-                os.mkdir(type_path)
-
-            output_path[dataset_type] = type_path
-
-        for dataset_type, dataset in self.split_dataset.items():
-            for label, _ in dataset.items():
-                label_path = f"{split_path}/{dataset_type}/{label}"
-                if not os.path.exists(label_path):
-                    print(f"Create directory: {label_path}")
-                    os.mkdir(label_path)
-
-        for dataset_type, dataset in self.split_dataset.items():
-            for label, elements in dataset.items():
-                for element in elements:
-                    src_file = f"{self.temp_path}/{label}/{element}"
-                    dst_file = f"{split_path}/{dataset_type}/{label}/{element}"
-                    shutil.copy(src_file, dst_file)
-
-        self.temp_dir.cleanup()
-
-        print(f"Split dataset saved at {split_path}")
-        return output_path
-
-
-class RabbitMQ:
-    def __init__(self, exchange="hackathon", routing_key="mobilenetv3"):
-        self.exchange = exchange
-        self.routing_key = routing_key
-
-        credentials = pika.PlainCredentials(
-            os.getenv("PIKA_USER", "guest"),
-            os.getenv("PIKA_PASS", "guest"),
-        )
-        parameters = pika.ConnectionParameters(
-            host=os.getenv("PIKA_HOST", "localhost"),
-            port=os.getenv("PIKA_PORT", "5672"),
-            credentials=credentials,
-        )
-        connection = pika.BlockingConnection(parameters)
-
-        self.channel = connection.channel()
-        self.channel.exchange_declare(exchange=self.exchange, exchange_type="topic")
-
-    def publish(self, message):
-        self.channel.basic_publish(
-            exchange=self.exchange,
-            routing_key=self.routing_key,
-            body=message,
-        )
+from botocore.client import Config
+from rabbitmq import RabbitMQ
 
 
 class MobileNetV3Train:
@@ -196,7 +49,7 @@ class MobileNetV3Train:
             f"{variation}/1"
         )
 
-        self.rabbit = RabbitMQ()
+        self.rabbit = RabbitMQ(routing_key="mobilenetv3")
 
     def keras_dataset(self, path, dataset_type, **kwargs):
         dataset = tf.keras.utils.image_dataset_from_directory(
@@ -229,7 +82,7 @@ class MobileNetV3Train:
         self.validation = self.validation.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
 
     def full_name(self):
-        name = f"{self.model_name}_{self.variation}"
+        name = f"{self.model_name}"
         # if self.augment:
         #     name += "_augment-fixed"
         # if self.normalize:
@@ -245,7 +98,7 @@ class MobileNetV3Train:
         return name
 
     def build_model(self):
-        self.rabbit.publish("Building new model")
+        self.rabbit.publish("Building model...")
 
         self.model = tf.keras.Sequential(
             [
@@ -268,6 +121,8 @@ class MobileNetV3Train:
         #     class_len, kernel_regularizer=tf.keras.regularizers.l2(0.0001)
         # ),
 
+        self.rabbit.publish("Compiling model...")
+
         self.model.summary(expand_nested=True)
         self.model.compile(
             optimizer="adam",
@@ -277,11 +132,11 @@ class MobileNetV3Train:
         return self.model
 
     def fit_model(self):
-        self.rabbit.publish("Fit new model")
+        self.rabbit.publish("Training model...")
 
         mlflow.set_experiment("mobilenetv3")
         mlflow.tensorflow.autolog()
-        with mlflow.start_run():
+        with mlflow.start_run() as run:
             mlflow.log_param("classes", self.class_names)
             history = self.model.fit(
                 self.train,
@@ -293,6 +148,10 @@ class MobileNetV3Train:
                     [self.model, tf.keras.layers.Softmax()]
                 )
 
+            self.rabbit.publish("Training finished successfully...")
+
+            self.save_model_s3()
+
             mlflow.keras.log_model(
                 self.model,
                 "model",
@@ -300,14 +159,37 @@ class MobileNetV3Train:
                 metadata={"classes": self.class_names},
             )
 
+        self.rabbit.publish(f"Model name: {self.full_name()}")
+
         return self.model, history
 
+    def save_model_s3(self):
+        converter = tf.lite.TFLiteConverter.from_keras_model(self.model)
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        tflite_model = converter.convert()
+
+        with open("model", "wb") as f:
+            f.write(tflite_model)
+
+        s3 = boto3.client('s3',
+                    endpoint_url=os.environ['MINIO_URI'],
+                    aws_access_key_id=os.environ['MINIO_ACCESS_KEY'],
+                    aws_secret_access_key=os.environ['MINIO_SECRET_ACCESS_KEY'],
+                    config=Config(signature_version='s3v4'),
+                    region_name='us-east-1')
+
+        with open("model.tflite", "rb") as f:
+            s3.upload_fileobj(f, 'mlflow', f"{self.full_name()}/1/model.tflite")
+
     def save_model(self):
-        model_path = f"{self.output}/{'_'.join(self.class_names)}/{self.full_name()}"
-        print(f"Saving TF model to {model_path}")
-        self.model.save(model_path)
+        self.model_path = "model"
+        print(f"Saving TF model to {self.model_path}")
+        self.model.save(self.model_path)
+        return self.model_path
 
     def run_test(self):
+        self.rabbit.publish("Testing model...")
+
         correct = 0
         print("\n--- Running test ---\n")
 
@@ -323,6 +205,9 @@ class MobileNetV3Train:
                 sep=" ",
             )
 
+        accuracy = f"{correct / self.test_size * 100}%"
+        self.rabbit.publish(f"Testing finished, accuracy: {accuracy}.")
+
         print(
             f"\n--- Accuracy: {correct / self.test_size * 100}%",
             f"{correct}/{self.test_size} ---",
@@ -334,6 +219,7 @@ class MobileNetV3Train:
         self.keras_datasets()
         self.build_model()
         self.fit_model()
+        self.save_model()
         self.run_test()
 
 
@@ -345,16 +231,6 @@ def available_variations():
         "small-075-224-classification",
         sep="\n",
     )
-
-
-def split_dataset(
-    dataset_path="dataset",
-    split_output="/tmp/split_output",
-    split_ratio='{"train":0.725,"validation":0.225,"test":0.05}',
-):
-    dataset = SplitDataset(split_ratio, dataset_path)
-    dataset.split()
-    dataset.save_split(split_output)
 
 
 def train(
@@ -397,7 +273,6 @@ if __name__ == "__main__":
     fire.Fire(
         {
             "available_variations": available_variations,
-            "split_dataset": split_dataset,
             "train": train,
             "test_gpu": test_gpu,
         }
